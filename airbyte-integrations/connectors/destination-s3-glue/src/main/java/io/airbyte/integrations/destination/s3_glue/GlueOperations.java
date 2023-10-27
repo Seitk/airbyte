@@ -131,38 +131,15 @@ public class GlueOperations implements MetastoreOperations {
         }
         // Default to use decimal as it is a more precise type and allows for large values
         // Set the default scale 38 to allow for the widest range of values
-        yield "decimal(38)";
+        yield "double";
       }
       case "boolean" -> "boolean";
       case "integer" -> "int";
       case "array" -> {
-        String arrayType = "array<";
-        Set<String> itemTypes;
-        if (jsonNode.has("items")) {
-          itemTypes = filterTypes(jsonNode.get("items").get("type"));
-          if (itemTypes.size() > 1) {
-            // TODO(itaseski) use union instead of array when having multiple types (rare occurrence)?
-            arrayType += "string>";
-          } else {
-            String subtype = transformSchemaRecursive(jsonNode.get("items"));
-            arrayType += (subtype + ">");
-          }
-        } else
-          arrayType += "string>";
-        yield arrayType;
+        yield "string";
       }
       case "object" -> {
-        if (jsonNode.has("properties")) {
-          String objectType = "struct<";
-          Map<String, JsonNode> properties = objectMapper.convertValue(jsonNode.get("properties"), new TypeReference<>() {});
-          String columnTypes = properties.entrySet().stream()
-              .map(p -> p.getKey() + ":" + transformSchemaRecursive(p.getValue()))
-              .collect(Collectors.joining(","));
-          objectType += (columnTypes + ">");
-          yield objectType;
-        } else {
-          yield "string";
-        }
+        yield "string";
       }
       default -> type;
     };

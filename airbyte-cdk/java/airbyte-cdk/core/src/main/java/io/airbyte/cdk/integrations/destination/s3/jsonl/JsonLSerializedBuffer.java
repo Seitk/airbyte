@@ -52,11 +52,30 @@ public class JsonLSerializedBuffer extends BaseSerializedBuffer {
     final ObjectNode json = MAPPER.createObjectNode();
     json.put(JavaBaseConstants.COLUMN_NAME_AB_ID, UUID.randomUUID().toString());
     json.put(JavaBaseConstants.COLUMN_NAME_EMITTED_AT, record.getEmittedAt());
+
+    JsonNode dataNode = record.getData();
+    ObjectNode updatedDataNode = MAPPER.createObjectNode();
+
+    // Iterate through each field in dataNode
+    dataNode.fields().forEachRemaining(field -> {
+        String fieldName = field.getKey();
+        JsonNode fieldValue = field.getValue();
+
+        // Check if field value is an object or array
+        if (fieldValue.isObject() || fieldValue.isArray()) {
+            // Convert object field value to string
+            updatedDataNode.put(fieldName, Jsons.serialize(fieldValue));
+        } else {
+            // Keep field value as is
+            updatedDataNode.set(fieldName, fieldValue);
+        }
+    });
+
     if (flattenData) {
-      final Map<String, JsonNode> data = MAPPER.convertValue(record.getData(), new TypeReference<>() {});
+      final Map<String, JsonNode> data = MAPPER.convertValue(updatedDataNode, new TypeReference<>() {});
       json.setAll(data);
     } else {
-      json.set(JavaBaseConstants.COLUMN_NAME_DATA, record.getData());
+      json.set(JavaBaseConstants.COLUMN_NAME_DATA, updatedDataNode);
     }
     printWriter.println(Jsons.serialize(json));
   }
